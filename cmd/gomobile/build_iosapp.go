@@ -152,7 +152,7 @@ func goIOSBuild(pkg *packages.Package, bundleID string, archs []string) (map[str
 }
 
 func detectTeamID() (string, error) {
-	// Grabs the first certificate for "iPhone Developer"; will not work if there
+	// Grabs the first certificate for "Apple Developer"; will not work if there
 	// are multiple certificates and the first is not desired.
 	cmd := exec.Command(
 		"security", "find-certificate",
@@ -160,8 +160,16 @@ func detectTeamID() (string, error) {
 	)
 	pemString, err := cmd.Output()
 	if err != nil {
-		err = fmt.Errorf("failed to pull the signing certificate to determine your team ID: %v", err)
-		return "", err
+		// If no "iPhone Developer" cert is found then try the new "Apple Development".
+		cmd := exec.Command(
+			"security", "find-certificate",
+			"-c", "Apple Development", "-p",
+		)
+		pemString, err = cmd.Output()
+		if err != nil {
+			err = fmt.Errorf("failed to pull the signing certificate to determine your team ID: %v", err)
+			return "", err
+		}
 	}
 
 	block, _ := pem.Decode(pemString)
@@ -422,7 +430,7 @@ var projPbxprojTmpl = template.Must(template.New("projPbxproj").Parse(`// !$*UTF
         CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
         CLANG_WARN_UNREACHABLE_CODE = YES;
         CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-        "CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+        "CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
         COPY_PHASE_STRIP = NO;
         DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
         ENABLE_NS_ASSERTIONS = NO;
@@ -435,7 +443,7 @@ var projPbxprojTmpl = template.Must(template.New("projPbxproj").Parse(`// !$*UTF
         GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
         GCC_WARN_UNUSED_FUNCTION = YES;
         GCC_WARN_UNUSED_VARIABLE = YES;
-        IPHONEOS_DEPLOYMENT_TARGET = 8.3;
+        IPHONEOS_DEPLOYMENT_TARGET = 9.0;
         MTL_ENABLE_DEBUG_INFO = NO;
         SDKROOT = iphoneos;
         TARGETED_DEVICE_FAMILY = "1,2";
